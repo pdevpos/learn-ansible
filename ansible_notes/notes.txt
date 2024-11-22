@@ -1,0 +1,717 @@
+SOP:Standard operating procedure
+
+1. all automations should run in GOCD
+2. all the automation on OS will be Ansible
+3. all infra automation with terraform
+
+* frontend connects backend through conf file
+* conf  file contains backend localhost to connect from frontend to backend
+mysql:
+=====
+mysql: to excecute sql queries on my sql server.
+so we need to install my sql server.
+
+backend:
+========
+
+dnf module list---to list modules
+A daemon user is an account on the system under which a particular application is meant to run,
+thereby restricting access, etc. for that specific use-case
+
+should know mysql server vs mysql
+commands:
+=========
+sudo dnf install ansible
+sudo pip3.11 install ansible
+
+mysql_secure_installation is basically just a couple of SQL commands to make MySQL more secure.
+
+to lookup dns records use command "nslookup frontend.abc72.online"
+ to search any package:
+ ======================
+* dnf list | grep MYSQL-python
+* pip3.11 list ---to know the list of pacakges
+* ansible-playbook -i localhost, -e ansible-user="" -e ansible_password = "" -m ping -vv
+pip3.9 install PYMYSQL
+pip3.9 install Cryptography
+
+3 steps:
+========
+1.keep the code DRY
+2.username and password should not be there
+3.re-run should not fail
+
+to declare variables in three ways:
+===================================
+play role
+task role
+
+- name: variables
+  hosts: localhost
+  vars:
+    url_play: play.com
+  tasks:
+    - name: playlevle
+      ansible.builtin.debug:
+        msg: url_play--{{url_play}}
+
+    - name: itself
+      ansible.builtin.debug:
+        msg: local_var---{{local_var}}
+      vars:
+        local_var: example.com
+
+role level variable:
+===================
+declare vars under roles--->commmon--->vars--->main.yml
+under main.yml
+
+ - name: playlevle
+   ansible.builtin.debug:
+     msg: Hello
+
+  - name: playlevle
+    ansible.builtin.debug:
+      msg: url_play--{{url_play}}
+
+      url_play --value pass through command line
+
+if there is a key and value ,the dynamic value should keep in double quotes with flower brackets
+ex: value: "{{url_role}}"
+
+
+to follow ansible role structure:
+=================================
+roles
+---------->frontend
+           -------------->tasks----->main.yml
+           --------------->vars----->main.yml
+           --------------->common---->tasks---->main.yml
+
+should write in tasks,main.yml only tasks level code
+frontend.yml
+------------
+- name: frontend appl
+  hosts:all
+  become: true
+  roles:
+    "{{role_name}}"
+
+rest backend,mysql is same
+
+keep the code DRY: means common code in every yml file under role keep in one folder.....
+
+keep the code under common ---> tasks ----> main.yml
+import this common code where required
+(search import role)
+- name: Import code commonly
+  ansible.builtin.import_role:
+    name: common
+    tasks_from: pre-req.yml
+
+    in the above code......
+    name is a key and common is a directory under roles where we keep common code
+    tasks_from is a key and pre-req.yml is a file
+
+
+calling the role from frontend.yml and control goes to frontend folder under roles.
+
+How to run ansible in multi environment?
+like dev,prod,....
+when we run the application in "dev" environment ,need to copy the expense.conf file in dev env...
+so , dynamicallly,copy module will not able to copy the expense.conf file . so here we use template modules
+
+* copy module will work for static data , to copy from src to dest file
+* template module will work for dynamic text data , to copy the text content from src to dest file dynamically
+ansible-playbook -i localhost, -e ansible_user="" -e ansible_pass="" env=dev frontend.yml
+* Role dependencies are always executed before the role that includes them, and may be recursive.
+* Role dependencies are prerequisites
+Ansible loads all listed roles but role dependencies loads first then other roles will execute....
+* Role dependencies are stored in the meta/main.yml file within the role directory.
+under frontend folder
+dependencies:
+  - role: common
+
+here common is a folder under roles
+common/tasks/main.yml
+===========
+- name: set sudo prompt
+  ansible.builtin.shell: set-prompt frontend
+
+
+
+in exepnse.conf: proxy_pass http://frontend-dev.abcdevops.online:8080
+here dev is a static
+proxy_pass http://frontend-{{env}}.abcdevops.online:8080
+here env to pass  dynamic(like env=dev)---for this code templates module came into the picture.....
+ansible-playbook -i localhost, -e ansible_user=ec2-user -e ansible_password=DevOps321 env=dev frontend.yml
+
+
+no need to write duplicate roles in each and every yml file....
+like
+frontend.yml
+=============
+- name:
+  hosts:
+  become:
+  roles:
+    - frontend
+
+in the above code to pass the roles dynamically instead of static
+playbook.yml
+=============
+ -name:
+  hosts:
+  become:
+  roles:
+   - {{role_name}}
+
+how to run ansible roles in linux?
+ansible-playbook -i localhost, playbook.yml -e ansible_user=ec2-user -e ansible_password = DevOps321 role_name=frontend
+
+then ansible controls move to playbook.yml file there assign "frontend"  to the role .
+then  control goes to frontend folder in roles.it will applicable for rest roles(backend,mysql)
+
+
+Ansible certification exam:
+============================
+1.Inventory:
+The Ansible inventory file defines the hosts and groups of hosts upon which commands,
+modules, and tasks in a playbook operate.(-i localhost)
+2.Environment:
+Ansible Environment variables are used to set the environment variable for action on the remote host
+using the environment keyword.(env=dev)
+3.Plays vs Playbooks
+playbooks:collection of plays
+Playbooks are collections of one or more plays that are performed in a certain order.(under roles)
+A play is an ordered sequence of tasks performed against hosts from your inventory. (frontend--->task---->main.yml)
+to run a specific play
+ansible-playbook -i localhost, playbook.yml -e ansible_user=ec2-user -e ansible_password = DevOps321 role_name=frontend
+4.configuration in ansible:
+$ ansible-config init --disabled > ansible.cfg---to generate config files
+5.adhoc commands:
+- m ping
+- m command
+-m group
+Use variables to retrieve the results of running commands
+=========================================================
+6.store result of task in output variable
+ - name: store result of task
+   ansible.builtin.shell: uptime
+   //here uptime is a builtin variable
+   register: output
+   here register is a key to store the task value into a variable
+
+retrieve the result of task
+- name: retreive the result of task
+  ansible.builtin.debug:
+    msg: {{output}}
+
+* sudo dnf install jq -y
+The jq command in Linux is a versatile tool that allows you to parse and manipulate JSON
+data right from your command line.
+to check proper json or not.
+cat /tmp/1.json | jq
+here 1.json is a file to store json data
+cat /tmp/1.json | jq '.failed'
+through ansible
+msg: {{output.failed}}
+for each and every module in ansible , json data is different
+
+7.Use conditionals to control play execution
+"when"
+- name: arithmetic
+  ansible.builtin.debug:
+    msg: add
+  when type == add
+
+- name: operator
+  ansible.builtin.debug:
+    msg: sub
+  when type == sub
+
+to run on linux:
+anisble-playbook var.yml type = add
+
+Scenario:
+In backend already db credentials are available.again repeated in mysql
+so get the sql info "mysql.mysql_db" (backend)
+In mysql we are having mysql error like "mysql-secure installation"
+* first get the sql info and then write the condition based on jq (json)
+
+
+8.configure error handling:
+===========================
+if a task is failure ,but the execution should not stop,then use "ignore_errors"
+
+9.create playbooks to configure systems to a specified state:
+=================================================================
+10.create and use templates to create customized configuration files:yes(need to search)
+11.work with ansible variables and facts:yes
+12.create and work with roles:yes
+13.ansible galaxy
+14:ansible vaults: vaults supports only ansible not integrate to other tools.
+===============================================================================
+* ansible-vault--enter
+to encrypt the string :ansible-vault encrypt_string abc@123
+then it will ask "new vault  password" "confirm vault password"
+then displays vault encryped password...
+copy vault password and paste in play level vars
+decrypt vault:
+to run vault through yml file, use "ansible-playbook abc.yml --ask-vault-password"
+to encrypt yml file
+* ansible-vault encrypt abc.yml
+to decrypt yml file
+* ansible-vault decrypt abc.yml
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Loops in ansible:
+=================
+msg: "fruitname - {{item}}-{{quantity}}"
+loop:
+-{name:apple,quantity:1}
+-{name:mango,quantity:5}
+-{name:grapes,quantity:8}
+here item pick every time one by one
+
+ansible-filters:
+----------------
+msg:yes you need to install
+when: installed | bool
+instead of bool it will take string
+
+depolyment tool:
+================
+through automation we can deliver the application
+continuous deployment should not take
+continuous delivery:should take(to make everything to automate)
+
+GOCD : running the jobs is nothing but running ansible.
+gocd server: is a server to manage the jobs
+gocd agent: to run actual tasks
+In the GoCD ecosystem, the server is the one that controls everything. It provides the user interface to users of the system and provides work for the agents to do. The agents are the ones that do any work (run commands, do deployments, etc) that is configured by the users or administrators of the system.
+
+The server does not do any user-specified "work" on its own. It will not run any commands or do deployments. That is the reason you need a GoCD Server and at least one GoCD Agent installed before you proceed.
+
+pipelines:
+===========
+to run the jobs and deploy in test environment.
+to run the jobs in two ways:
+through automation
+through manual(ui)
+tomzo gocd yaml configuration:reference for gocd
+** bash ansible.sh frontend
+bash(command) ansible.sh(shell script --arguments)  frontend(arguments)
+in pipelines code "undet task section -->exec--->pass arguments"
+- ansible.sh(shell script)
+- frontend
+command: bash
+
+to run through bash command instead of linux server:
+=====================================================
+ansible.sh:
+============
+component=$1
+env(it is a command)
+bash ansible.sh frontend:command
+in the above command frontend is a $1(component)
+ansible-playbook -i localhost, playbook.yml  -e role_name=frontend  -e env=dev -e ansible_user=ec2-user -e ansible_password=DevOps321
+Environment:
+Environment variables can be declared in Environments, Pipelines, Stages and Jobs.
+stages:
+====
+environment_variables:
+TEST_NUM: 1
+
+* not declared environement variables in stage ,job level then we can use another approach
+ansible-playbook -i localhost, playbook.yml  -e role_name=frontend  -e env=$env -e ansible_user=ec2-user -e ansible_password=DevOps321
+SOP:
+====
+* All automations should run in GOCD
+* All automation on OS will be ansible
+
+By default ansible is a push mechanishm
+Ansible pull:
+=============
+* Server is connected with nodes through SSH so that it can push code to nodes. (runs in linux)
+* Ansible-pull is a command line tool that fetches a playbook from a git server and runs it locally-----(gocdserver)
+pulls playbooks from a VCS repo and executes them on target host.
+to get yml file from girt reop through git url and runs in the hosts(either localhost,different ip address)
+
+pending topics practice:
+========================
+register: mysql----complete
+Ignore_errors:mysql---complete
+ansible.sh----complete
+pipelines:gocd----complete
+env command----complete
+instead env-----pending
+(need to search environment variables)
+errors: my conf root
+solution: not connected to proper hosts.(either reorder the code or check once...)
+
+"use frontend host to connect React App"(to connect application)
+any changes in schema : restart service in linux server
+
+
+Terraform:
+==========
+Terraform is an IAC tool, used primarily by DevOps teams to automate various infrastructure tasks.
+The provisioning of cloud resources, for instance, is one of the main use cases of Terraform.
+It's a cloud-agnostic, open-source provisioning tool written in the Go language and created by HashiCorp.
+
+HCL:
+====
+HCL (HashiCorp Configuration Language) is a declarative language used in Terraform to define infrastructure configurations.
+It provides a clean and readable syntax for expressing resources and their dependencies.
+To configure infrastructure resources.
+HCL files typically have a .tf extension and contain the configuration for a Terraform project.
+Different blocks:
+================
+1.Provider Block
+2.Resource Block
+3.Data Block
+4.Variable Block
+5.Output Block
+6.Module Block
+7.Provisioner Block
+8.Locals Block
+9.Terraform Block
+
+Terraform life cycle:
+=====================
+terraform init: will understand the code we have written and download necessary provider plugins + 2more things to do
+terraform plan: will tell the execution plan that what it is planning to do when you actuallly apply.
+terraform apply: create the resources which are mentioned in the code. if the resource is already there then TF will not do anything..
+terraform destroy: Delete the resources which were been created so far by TF. However TF will not look for code to delete,it
+will delete created resources by TF.
+
+2.Resource Block:
+resource "aws_ami" "ami"{
+
+}
+to choose ami
+click on ami ----> choose public images in drop down
+then choose ami on top of the screen
+* to create an ec2instances in aws through terraform need some permissions from aws,so need to create an "Iam role"
+and attach this role to ec2instances.
+to create nodes in one service from other services , need permissions (so "IAM" required)
+to create an instance :
+=======================
+terraform will get permission from an  "IAM" role to  create instances in aws.
+Maps
+List
+terraform apply -help :use some options
+terraform apply:which instance need to destroy select and destroy
+terraform destroy -target=aws_instance.frontend
+
+3.variable Block:
+=================
+variable "x"{
+default = 100
+}
+output "x"{
+value = var.x
+}
+variable "x_list"{
+default = [10,20,30]
+}
+output "list"{
+value=var.x_list
+}
+variable "z_map"
+{
+default={
+x=10
+y=20
+}
+output "map"
+{
+value=var.z_map
+}
+}
+
+
+session:22
+==========
+need to read aws_ami,aws_instance
+declare variables same .tf file and assign the var to resource block parameters
+to load variable values use .tfvars
+declare empty variables in .tf file and load value into .tfvars file
+.auto.tfvars file is to dispaly automatically without
+varibale "common"{}
+output "common"{
+value = var.expense
+}
+sample.auto.tfvars:
+=================
+expense = Expense project
+to display this variable automatically without calling or passing....(it will be applicable for all directives under application)
+if the filename is terraform.auto.vars , terraform picks this file automatically
+** terraform apply -var-file=env-dev/dev.tfvars -ato-approve
+
+DataSource Block:
+================
+how to get security group from existing resource?
+data "security_group" "selected"{
+name = "allow-all"
+}
+output "security"{
+value = data.security_group.selected
+}
+to get all the details under security group
+
+repeatitive code: for shell keep this code in one function
+in ansible keep this code in common folder under roles
+in terraform function is a module
+
+single module pass inputs to .tf file
+module "demo"{
+source = "./demo"
+ami=""
+}
+in the above code ./demo is a folder , the inputs passed wherever required.....
+demo--->env.tf
+env.tf
+======
+resource "aws_instance" "instance"
+{
+ami = var.ami
+}
+//declare variale in same .tf file
+variable ami{}
+use the same variable name what u delcare in modules...
+moudle is under root module
+suppose
+05-module---->main.tf
+------>demo----->env.tf
+
+in the above structure 05-module is a root module,demo is a module
+
+condition in terraform is all about choosing value:
+====================================================
+result? true:false
+for loops:
+==========
+loop is about for looping a resource or modules:
+================================================
+loop aresource
+resource "null_resource" "resource"{
+count =10
+}
+resource loop 10 times
+second step:
+=============
+resource "null_resource" "resource"{
+for_each = var.color_codes
+}
+variable "color_codes"{
+default={
+red = 31
+blue=32
+magenta=33
+green = 34
+}
+}
+
+***************
+resource "aws_instance" "instance"{
+for_each = var.instances
+name = each.key
+instance_type = each.value["instance_type"]
+}
+variable "instances"{
+default={
+frontend = {
+instance_type="t3.micro"
+}
+backend={
+instance_type="t3.micro"
+}
+mysql={
+instance_types="t3.micro"
+}
+}
+}
+data in terraform is of thre types:
+===================================
+1.string---required quoting supports only double quotes,not support single quotes
+2.number----no quotes
+3.boolean----no quotes
+
+session:23:  (Inbuilt functions pending)
+============
+teraform backend s3:
+==================
+***error like: Terraform initialized in an empty directory!
+
+ The directory has no Terraform configuration files. You may begin working with Terraform immediately by creating Terraform configuration files.
+below is the solution:
+---------------------------
+You can't just run Terraform in a *.tfvars file; that's just a variables file.
+You still need a *.tf file that contains your terraform block and your provider(s).
+******************************************************************************************************
+* bucket s3 is used to track the info in terraform.
+to create multi state bucket like env=dev/prod
+bucket "s3"{
+key = "test/${var.env}/file"
+region=""
+}
+in the above code ${var.env} doesn't support the bucket ,so need to write this code seperately in other .tf files.
+dev.tfvars
+=======
+key = "test/dev/file"
+region=""
+prod.tfvars
+========
+key = "test/prod/file"
+region=""
+
+terraform "s3"
+{
+bucket "s3"{}
+}
+how to run in terraform?
+=========================
+terraform init -backend-config=dev.tfvars----loads state file
+terraform apply -auto-approve
+when terraform init will run second time will get an error: already created state file
+so here need to delete that state file.
+ls -A(cache)
+choose .terraform---> then .terraform.tfstate
+rm -rf .terraform/.terraform.tfstate-----remove
+then  terraform init
+through linux only this problem comes
+through pipelines this problem wont arise
+In organisation bucket names was different ,so we go for s3 bucket.
+
+how to run by using shell script:
+=================================
+expense.sh
+==========
+env=$1
+action=$2
+if [ -z "$env" ]; then
+echo "env is missing"
+exit 1
+fi
+if [ -z "$action" ]; then
+echo "action is missing"
+exit 1
+fi
+
+rm -rf .terraform/.terraform.tfstate
+terraform init -backend-config=env-$env/state.tfvars
+terraform $action -var-file=env-$env/dev.tfvars
+
+*******************************************************
+In workspaces , if there is a multi state files like env-dev/prod , then both state files store in one bucket
+but in anorganisations if the bucket names are multi so at that time workspace wont support.
+for this reason in s3 bucket we have to use .tfvars for multienvironment...
+
+
+state file will hold latest information
+where as pipelines hold previous and current history
+
+
+pending topics:
+==============
+1.create bucket with nullresource-----complete
+2.multi state files---complete
+3.to create folders env-dev/state.tfvars,dev.tfvars---complete
+4.create resources===complete
+5.datasource for existing security group===complete
+6.repeat resource multi times by using count,foreach
+7.create a module and pass inputs to module folder---complete
+8.create ansible.sh----completed
+
+what is provider?
+definition:
+different types of providers
+configuration files
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+
+session:24
+==========
+What OS does Ansible run on?
+The community distribution of Ansible contains a suite of powerful command line tools supported on most operating systems with Python installed.
+This includes Red Hat Enterprise Linux, Debian, Ubuntu, MacOS, FreeBSD, Microsoft Windows, and more.
+1.Inbuilt functions
+2.Provisioners
+local-exec
+remote-exec
+SOP:
+====
+3. All infra automation with terraform
+sudo pip3.11 install ansible
+ansible-pull -i localhost -U http://github.com/devops23/expense-ansible expense.yml -e env=${var.env} -e component_name=${var.component}
+
+Session:25:
+===========
+depends on module concept in terraform
+create Prometheus intances through foreach
+convention styles in terraform
+* Linux directory structure explained(like /opt)
+* download and run service through automation:
+==============================================
+cat /etc/passwd ----to know root user "bin"
+Error loading config -----prometheus.yml is not available because in service execstart from /opt/pro...
+so need to run under this opt/promethus.... path,use "WorkingDirectory=/home/someuser"
+Session:26
+============
+1.what is prometheus?
+2.what is timesheet in prometheus?
+3.what is configuration files?
+4.what is scrape_interval?
+5.what is prometheus pull metrics?
+6.why we use prometheus in terraform?
+https://logit.io/blog/post/prometheus-interview-questions/
+prometheus is a monolythic application?
+what is monolythic?
+to know about aws_iam,instance,policy,ec2:DescribeIntances
+
+node_Exporter: to monitor nodes(ec2 instances) on prometheus:
+launch instance and download node exporter in that hosts then netstat -lntp will get port number 9100
+then attach node exporter to prometheus.
+in prometheus.yml file ,there is a static config(to monitor only node) add nodeexporter hosts and port number
+
+* for multiple nodes like frontend,backend and mysql,to monitor on prometheus dashboard:
+need to auto discovery(service discovery) in prometheus.io
+
+session:27:
+===========
+ec2-sd-configs: for multiple nodes to monitor on prometheus dashboard.
+so need iam role(permissions)
+create iam role
+create instance profile
+attach instance profile to instances
+create instance policy (to monitor permissions on prometheus dashboard)
+to monitor specific nodes(instances) on prometheus dashboard use "filter"
+monitor instance label on prometheus...
+
+assume_role_policy:
+ using a set of temporary security credentials to access AWS resources that you might not have access to otherwise
+ These temporary credentials consist of an access key ID, a secret access key, and a security token.
+ aws instance profile:
+  ec2:DescribeInstances
+  aws policy
+  attach aws policy to role policy
+
+  https://medium.com/edureka/aws-ec2-tutorial-16583cc7798e
+
+  to know labels of instances(tags) in prometheus dashboard:__meta_ec2_tag_<tagkey>: each tag value of the instance
+   relabel_configs:
+        - source_labels: [__meta_ec2_tag_name]
+          target_label: name
+
+
+
+
+
+
+
+
+

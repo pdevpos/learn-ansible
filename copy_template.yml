@@ -1,0 +1,13 @@
+- name: copy file
+  hosts: localhost
+  tasks:
+    - name: copy file
+      ansible.builtin.copy:
+        src: expense.conf
+        dest: /tmp/expense.conf
+
+    - name: copy file
+      ansible.builtin.template:
+        src: expense.conf
+        dest: /tmp/expense_template.conf
+

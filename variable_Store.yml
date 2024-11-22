@@ -1,0 +1,10 @@
+- name: store variable
+  hosts: localhost
+  tasks:
+    - name: value store
+      ansible.builtin.shell: uptime
+      register: result
+
+    - name: retrieve value of task
+      ansible.builtin.debug:
+        msg: "{{ result.failed }}"

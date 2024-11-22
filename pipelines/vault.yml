@@ -1,0 +1,30 @@
+format_version: 10
+pipelines:
+  vault-github-runner:
+    group: expense
+    label_template: ${COUNT}
+    lock_behavior: none
+    display_order: -1
+    materials:
+      git-2ae7d73:
+        git: https://github.com/devps23/expense-ansible.git
+        shallow_clone: false
+        auto_update: true
+        branch: main
+#    secure_variables:
+#      vault_token: "AES:Pvz2GiEHhgva4DUwjH7SCA==:QTFyeTWa/SOGzQzOQ2vYaa6RqEsoG9q9oLRSkvi0fLY="
+    stages:
+      - DEV:
+          fetch_materials: true
+          keep_artifacts: false
+          clean_workspace: false
+          approval:
+            type: manual
+            allow_only_on_success: false
+          jobs:
+            vault-job:
+              timeout: 0
+              tasks:
+                - exec: {command: ansible-playbook,arguments:["-i","172.31.35.48,","expense.yml","-e","component_name=ci-server","-e","ansible_user=ec2-user","-e","ansible_password=DevOps321"],run_if: passed}
+
+

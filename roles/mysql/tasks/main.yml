@@ -1,0 +1,36 @@
+- name: Install mysql server package
+  ansible.builtin.dnf:
+    name: mysql-server
+    state: latest
+
+- name: start and enable service
+  ansible.builtin.systemd_service:
+    name: mysqld
+    state: restarted
+    enabled: yes
+
+- name: Install Python MySQL Client
+  ansible.builtin.pip:
+    name:
+      - PyMySQL
+      - cryptography
+    executable: pip3.9
+
+- name: Get DB Info credentials
+  community.mysql.mysql_info:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_host: mysql-dev.pdevops72.online
+    filter: version
+  register: mysql_connection_output
+  ignore_errors: true
+
+- name: Receive DB Info
+  ansible.builtin.debug:
+    msg: "{{mysql_connection_output}}"
+
+- name: Set Rootpassword
+  ansible.builtin.shell: mysql_secure_installation --set-root-pass {{mysql_root_password}}
+  when: mysql_connection_output.failed is true
+
+#{{ mysql_root_password }} here mysql_root_password getting the password from vault

@@ -1,0 +1,5 @@
+- name: expense playbook
+  hosts: all
+  become: true
+  roles:
+    - "{{ component_name }}"
