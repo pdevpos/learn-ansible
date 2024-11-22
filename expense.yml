@@ -1,5 +1,5 @@
 - name: expense playbook
-  hosts: all
+  hosts: localhost
   become: true
   roles:
     - "{{ component_name }}"
