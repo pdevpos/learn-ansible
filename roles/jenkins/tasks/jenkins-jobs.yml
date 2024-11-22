@@ -1,8 +1,0 @@
-- name: copy groovy file
-  ansible.builtin.template:
-    src: "{{ item }}"
-    dest: /var/lib/jenkins/init.groovy.d/{{ item }}
-  loop:
-    - 01-wizard.groovy
-    - 02-admin-user.groovy
-    - 03-plugins.groovy
