@@ -1,5 +1,0 @@
-- name: expense mysql playbook
-  hosts: all
-  become: true
-  roles:
-    - mysql
