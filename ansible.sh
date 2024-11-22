@@ -2,7 +2,7 @@ component=$1
 env=$2
 # shellcheck disable=SC2154
 #ansible-playbook  get_secrets_vault.yml -e vault_token=$vault_token -e component_name=$component
-ansible-playbook  get_secrets_vault.yml -e vault_token="hvs.fMGVYmkvteLqprw3itd1iXUe" -e component_name=$component
+ansible-playbook  get_secrets_vault.yml -e vault_token="{{vault_token}}" -e component_name=$component
 ansible-playbook -i 172.31.35.208, expense.yml -e component_name=$component -e env=$env -e '@secrets.json' -e '@app.json'
 ansible-playbook -i 172.31.35.208, expense.yml -e component_name=$component -e env=$env -e '@secrets.json'
 
