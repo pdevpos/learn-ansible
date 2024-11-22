@@ -1,0 +1,23 @@
+- name: clean the code
+  ansible.builtin.file:
+    path: "{{ app_loc }}"
+    state: absent
+
+- name: Make a directory
+  ansible.builtin.file:
+    path: "{{ app_loc }}"
+    state: directory
+
+- name: Download {{component}}
+  ansible.builtin.get_url:
+    url: https://expense-artifacts.s3.amazonaws.com/expense-{{ component }}-v2.zip
+    dest: /tmp/{{ component }}.zip
+
+- name: Unarchive {{component}}
+  ansible.builtin.unarchive:
+    src: /tmp/{{ component }}.zip
+    dest: "{{ app_loc }}"
+    remote_src: yes
+
+
+
